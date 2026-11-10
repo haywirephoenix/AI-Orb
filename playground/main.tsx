@@ -2,11 +2,9 @@ import { StrictMode, useEffect, useRef, useState } from "react"
 import { createRoot } from "react-dom/client"
 
 import { Orb, useOrbAudio } from "../src"
-import type { OrbFinish, OrbState } from "../src"
+import type { OrbState } from "../src"
 import "./styles.css"
 
-//"ink", "pearl", "aurora", "plasma"
-const FINISHES: OrbFinish[] = ["vessel"]
 const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking"]
 // "ember","moss", "porcelain", "discharge", 
 // const PALETTES = [ "iris", "spectrum"]  // restore with the Palette fieldset below
@@ -100,7 +98,6 @@ function useSynthesisedSpeech() {
 }
 
 function App() {
-  const [finish, setFinish] = useState<OrbFinish>("vessel")
   const [palette] = useState("iris") // setPalette: restore with the Palette fieldset
   const [state, setState] = useState<OrbState>("idle")
   const [micStream, setMicStream] = useState<MediaStream | null>(null)
@@ -108,6 +105,10 @@ function App() {
   const [heldOut, setHeldOut] = useState(0)
   const [heldIn, setHeldIn] = useState(0)
   const [heroScale, setHeroScale] = useState(155)//89
+  // Outer ring. Starts at the dark-field defaults from DEFAULT_RIM.
+  const [rimInner, setRimInner] = useState(0.55)//0.72
+  const [rimFade, setRimFade] = useState(0.99)//0.88
+  const [rimStrength, setRimStrength] = useState(0.10)//0.64
 
   const { speak, speaking, analyserRef } = useSynthesisedSpeech()
 
@@ -157,13 +158,13 @@ function App() {
     <main>
       <section className="stage">
         <Orb
-          finish={finish}
           palette={palette}
           state={state}
           outputLevelRef={() => Math.max(heldOut, outputLevel.current)}
           inputLevelRef={() => Math.max(heldIn, inputLevel.current)}
           className="orb-hero"
           style={{ width: heroScale, height: heroScale }}
+          rim={{ inner: rimInner, fade: rimFade, strength: rimStrength }}
         />
         <p className="readout" data-testid="readout">
           {state} 
@@ -180,15 +181,6 @@ function App() {
             </button>
           ))}
         </fieldset> */}
-
-        <fieldset>
-          <legend>Finish</legend>
-          {FINISHES.map((f) => (
-            <button key={f} onClick={() => setFinish(f)} aria-pressed={finish === f}>
-              {f}
-            </button>
-          ))}
-        </fieldset>
 
         <fieldset>
           <legend>Background</legend>
@@ -259,6 +251,31 @@ function App() {
           </label>
         </fieldset>
 
+        <fieldset className="holds">
+          <legend>Outer ring</legend>
+          {(
+            [
+              ["inner", rimInner, setRimInner, 0, 1],
+              ["fade", rimFade, setRimFade, 0, 1],
+              ["strength", rimStrength, setRimStrength, 0, 2],
+            ] as const
+          ).map(([name, value, set, min, max]) => (
+            <label key={name}>
+              <span>
+                {name} {value.toFixed(2)}
+              </span>
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={0.01}
+                value={value}
+                data-testid={`rim-${name}`}
+                onChange={(e) => set(Number(e.target.value))}
+              />
+            </label>
+          ))}
+        </fieldset>
 
       </section>
 

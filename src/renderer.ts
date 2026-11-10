@@ -1,14 +1,10 @@
-import {
-  FINISH_INDEX,
-  FRAGMENT_SHADER,
-  STATE_INDEX,
-  VERTEX_SHADER,
-} from "./shader"
-import type { OrbRendererConfig } from "./types"
+import { FRAGMENT_SHADER, STATE_INDEX, VERTEX_SHADER } from "./shader"
+import type { OrbField, OrbRendererConfig, OrbRim } from "./types"
 
 const UNIFORMS = [
-  "uTime", "uFlow", "uRing", "uFinish", "uState", "uDark", "uIn", "uOut",
-  "uGrain", "uSeed", "uDetail", "uC1", "uC2", "uC3", "uBody", "uPointer", "uPtr",
+  "uTime", "uFlow", "uRing", "uState", "uDark", "uIn", "uOut",
+  "uGrain", "uSeed", "uDetail", "uC1", "uC2", "uC3", "uBody",
+  "uRimColor", "uRimInner", "uRimFade", "uRimStrength",
 ] as const
 
 type UniformName = (typeof UNIFORMS)[number]
@@ -20,6 +16,12 @@ export interface OrbRendererHooks {
 }
 
 const DPR_CAP = 2
+
+/** The outer ring as originally tuned. Strength and colour differ per field. */
+export const DEFAULT_RIM: Record<OrbField, Required<OrbRim>> = {
+  light: { color: "#8cc2f0", inner: 0.72, fade: 0.88, strength: 0.26 },
+  dark: { color: "#85d6ff", inner: 0.72, fade: 0.88, strength: 0.64 },
+}
 
 /** #rgb, #rrggbb, or anything else the canvas can parse, to linear-ish 0-1 RGB. */
 function parseColor(input: string): [number, number, number] {
@@ -79,7 +81,6 @@ export class OrbRenderer {
   private inLevel = 0
   private outLevel = 0
 
-  private pointer = { x: 0.7, y: 0.5, on: 0, target: 0 }
   private detail = 1
 
   private resizeObserver: ResizeObserver | null = null
@@ -223,16 +224,6 @@ export class OrbRenderer {
     this.hooks = hooks
   }
 
-  /** Normalised direction from the orb centre; `active` false releases it. */
-  setPointer(x: number, y: number, active: boolean) {
-    if (active) {
-      const len = Math.hypot(x, y) || 1
-      this.pointer.x = x / len
-      this.pointer.y = y / len
-    }
-    this.pointer.target = active ? 1 : 0
-  }
-
   start() {
     if (!this.supported || this.running) return
     this.running = true
@@ -285,7 +276,6 @@ export class OrbRenderer {
     // it — motion gains inertia the way the ElevenLabs shader does.
     this.flow += dt * this.config.speed * (1 + this.outLevel * 3.2)
     this.ring += dt * (0.42 + this.inLevel * 0.5)
-    this.pointer.on += (this.pointer.target - this.pointer.on) * Math.min(1, dt * 5)
 
     if (!this.visible) return
     this.resize()
@@ -296,16 +286,17 @@ export class OrbRenderer {
     const gl = this.gl
     if (!gl || !this.program) return
 
-    const { finish, state, colors, field, grain, seed } = this.config
+    const { state, colors, field, grain, seed } = this.config
     const c1 = parseColor(colors.stops[0])
     const c2 = parseColor(colors.stops[1])
     const c3 = parseColor(colors.stops[2])
     const body = parseColor(colors.body)
+    const rim = { ...DEFAULT_RIM[field], ...this.config.rim }
+    const rc = parseColor(rim.color)
 
     gl.uniform1f(this.loc.uTime, time)
     gl.uniform1f(this.loc.uFlow, flow)
     gl.uniform1f(this.loc.uRing, ring)
-    gl.uniform1i(this.loc.uFinish, FINISH_INDEX[finish] ?? 0)
     gl.uniform1i(this.loc.uState, STATE_INDEX[state] ?? 0)
     gl.uniform1f(this.loc.uDark, field === "dark" ? 1 : 0)
     gl.uniform1f(this.loc.uIn, input)
@@ -317,8 +308,10 @@ export class OrbRenderer {
     gl.uniform3f(this.loc.uC2, c2[0], c2[1], c2[2])
     gl.uniform3f(this.loc.uC3, c3[0], c3[1], c3[2])
     gl.uniform3f(this.loc.uBody, body[0], body[1], body[2])
-    gl.uniform2f(this.loc.uPointer, this.pointer.x, this.pointer.y)
-    gl.uniform1f(this.loc.uPtr, this.pointer.on)
+    gl.uniform3f(this.loc.uRimColor, rc[0], rc[1], rc[2])
+    gl.uniform1f(this.loc.uRimInner, rim.inner)
+    gl.uniform1f(this.loc.uRimFade, rim.fade)
+    gl.uniform1f(this.loc.uRimStrength, rim.strength)
 
     gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT)

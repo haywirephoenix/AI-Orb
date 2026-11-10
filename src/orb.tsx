@@ -2,20 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 
-import { defaultPaletteFor, orbPalettes } from "./palettes"
+import { DEFAULT_PALETTE, orbPalettes } from "./palettes"
 import { OrbRenderer } from "./renderer"
 import type {
   LevelSource,
   OrbField,
   OrbFieldColors,
-  OrbFinish,
+  OrbRim,
   OrbState,
 } from "./types"
 
 export interface OrbProps {
-  /** Visual archetype. `pearl` resolves to `aurora` on a dark field (P4). */
-  finish?: OrbFinish
-  /** Named palette from `orbPalettes`. */
+  /** Named palette from `orbPalettes`. Defaults to `spectrum`. */
   palette?: string
   /** Three explicit stops. Overrides `palette`. */
   colors?: [string, string, string]
@@ -36,11 +34,8 @@ export interface OrbProps {
   seed?: number
   /** Ambient time multiplier. Audio acceleration is separate. */
   speed?: number
-  /**
-   * Filaments follow the pointer on `plasma`. Off elsewhere, where it would be
-   * motion without meaning.
-   */
-  pointerReactive?: boolean
+  /** Outer ring position, colour and strength. Unset fields use the defaults. */
+  rim?: OrbRim
 
   className?: string
   style?: CSSProperties
@@ -63,20 +58,6 @@ function toGetter(source: LevelSource): () => number {
 }
 
 type LevelGetters = { input: () => number; output: () => number }
-
-/**
- * Some finishes are objects with their own light model rather than surfaces
- * that adapt to the page. A plasma globe on a white desk is still dark inside;
- * pulling its colours from a light palette washes it out. Only `ink` and
- * `vessel` genuinely follow the page.
- */
-const FINISH_FIELD: Record<OrbFinish, OrbField | null> = {
-  ink: null,
-  vessel: null,
-  pearl: "light",
-  aurora: "dark",
-  plasma: "dark",
-}
 
 /** Follows the page unless `field` is given. Re-reads on OS and class changes. */
 function useResolvedField(explicit?: OrbField): OrbField {
@@ -131,7 +112,6 @@ function usePrefersReducedMotion(): boolean {
 }
 
 export function Orb({
-  finish = "ink",
   palette,
   colors,
   bodyColor,
@@ -142,7 +122,7 @@ export function Orb({
   grain = 0.05,
   seed = 0,
   speed = 1,
-  pointerReactive = true,
+  rim,
   className,
   style,
   label,
@@ -151,24 +131,16 @@ export function Orb({
   const rendererRef = useRef<OrbRenderer | null>(null)
   const [fallback, setFallback] = useState(false)
 
-  const pageField = useResolvedField(fieldProp)
+  const field = useResolvedField(fieldProp)
   const reduced = usePrefersReducedMotion()
 
-  // Pearl has no dark form; on a dark page it becomes Aurora rather than being
-  // recoloured into mud (P4).
-  const effectiveFinish: OrbFinish =
-    finish === "pearl" && pageField === "dark" ? "aurora" : finish
-
-  const field: OrbField = FINISH_FIELD[effectiveFinish] ?? pageField
-
   const resolved: OrbFieldColors = useMemo(() => {
-    const named = orbPalettes[palette ?? defaultPaletteFor(effectiveFinish)]
-    const base = (named ?? orbPalettes.ember)[field]
+    const base = (orbPalettes[palette ?? DEFAULT_PALETTE] ?? orbPalettes[DEFAULT_PALETTE])[field]
     return {
       stops: colors ?? base.stops,
       body: bodyColor ?? base.body,
     }
-  }, [palette, colors, bodyColor, field, effectiveFinish])
+  }, [palette, colors, bodyColor, field])
 
   // Kept in a ref so changing the source never re-creates the WebGL context.
   const levels = useRef<LevelGetters>({ input: () => 0, output: () => 0 })
@@ -182,7 +154,6 @@ export function Orb({
     const renderer = new OrbRenderer(
       canvas,
       {
-        finish: effectiveFinish,
         field,
         colors: resolved,
         state,
@@ -190,6 +161,7 @@ export function Orb({
         seed,
         speed,
         still: reduced,
+        rim,
       },
       {
         getInputLevel: () => levels.current.input(),
@@ -227,7 +199,6 @@ export function Orb({
     const renderer = rendererRef.current
     if (!renderer) return
     renderer.update({
-      finish: effectiveFinish,
       field,
       colors: resolved,
       state,
@@ -235,22 +206,10 @@ export function Orb({
       seed,
       speed,
       still: reduced,
+      rim,
     })
     if (reduced) renderer.renderStill()
-  }, [effectiveFinish, field, resolved, state, grain, seed, speed, reduced])
-
-  const trackPointer = (event: React.PointerEvent<HTMLDivElement>) => {
-    const renderer = rendererRef.current
-    if (!renderer || !pointerReactive || effectiveFinish !== "plasma") return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2
-    const y = -((event.clientY - rect.top) / rect.height - 0.5) * 2
-    renderer.setPointer(x, y, true)
-  }
-
-  const releasePointer = () => {
-    rendererRef.current?.setPointer(0, 0, false)
-  }
+  }, [field, resolved, state, grain, seed, speed, reduced, rim])
 
   // No WebGL: a static approximation rather than an empty hole.
   if (fallback) {
@@ -272,9 +231,6 @@ export function Orb({
     <div
       className={className}
       style={{ position: "relative", borderRadius: "50%", overflow: "hidden", ...style }}
-      onPointerMove={trackPointer}
-      onPointerDown={trackPointer}
-      onPointerLeave={releasePointer}
       role="img"
       aria-label={label ?? STATE_LABEL[state]}
     >

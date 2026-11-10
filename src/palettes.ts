@@ -84,13 +84,5 @@ export const orbPalettes: Record<string, OrbPalette> = {
 
 export type OrbPaletteName = keyof typeof orbPalettes
 
-const FINISH_DEFAULT_PALETTE: Record<string, OrbPaletteName> = {
-  ink: "ember",
-  pearl: "iris",
-  vessel: "spectrum",
-  aurora: "iris",
-  plasma: "discharge",
-}
-
-export const defaultPaletteFor = (finish: string): OrbPaletteName =>
-  FINISH_DEFAULT_PALETTE[finish] ?? "spectrum"
+/** Used when no `palette` or `colors` is given. */
+export const DEFAULT_PALETTE: OrbPaletteName = "spectrum"

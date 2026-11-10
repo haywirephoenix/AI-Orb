@@ -1,6 +1,3 @@
-/** The five renderable finishes. `prism` is deliberately absent — see docs/style-guide.md. */
-export type OrbFinish = "ink" | "pearl" | "vessel" | "aurora" | "plasma"
-
 /** Agent presence states. Each must be distinguishable in a still frame (P8). */
 export type OrbState = "idle" | "listening" | "thinking" | "speaking"
 
@@ -10,10 +7,7 @@ export type OrbField = "light" | "dark"
 export interface OrbFieldColors {
   /** Three gradient stops, any CSS colour the canvas can parse. */
   stops: [string, string, string]
-  /**
-   * The non-chromatic mass: `pearl`'s opaque body, `vessel`'s interior ground.
-   * Ignored by finishes that have no body.
-   */
+  /** The non-chromatic interior ground the coloured bodies sit in. */
   body: string
 }
 
@@ -36,8 +30,22 @@ export type LevelRef = { readonly current: number | null }
 /** A level source read once per frame. Never a prop — see P10 and the README. */
 export type LevelSource = LevelRef | (() => number) | number | undefined
 
+/**
+ * The vessel's outer ring: a radial band that rises from `inner` and fades back
+ * to nothing between `fade` and the edge of the glass. Radii are 0 (centre) to
+ * 1 (edge). Any field left out uses the default for the current light/dark field.
+ */
+export interface OrbRim {
+  color?: string
+  /** Radius where the ring starts to rise. Default 0.72. */
+  inner?: number
+  /** Radius where it starts fading out toward the edge. Default 0.88. */
+  fade?: number
+  /** Brightness added at the ring's peak. Default 0.26 light, 0.64 dark. */
+  strength?: number
+}
+
 export interface OrbRendererConfig {
-  finish: OrbFinish
   field: OrbField
   colors: OrbFieldColors
   state: OrbState
@@ -49,4 +57,6 @@ export interface OrbRendererConfig {
   speed: number
   /** Render a single frame and stop. */
   still: boolean
+  /** Overrides for the outer ring. */
+  rim?: OrbRim
 }

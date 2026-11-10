@@ -25,7 +25,6 @@ mkdirSync(shots, { recursive: true })
 const LAUNCH_ARGS = JSON.parse(process.env.HARNESS_CHROMIUM_ARGS ?? "[]")
 
 const STATES = ["idle", "listening", "thinking", "speaking"] // types.ts OrbState
-const FINISHES = ["ink", "pearl", "vessel", "aurora", "plasma"] // types.ts OrbFinish
 
 const failures = []
 const check = (name, ok, detail) => {
@@ -162,23 +161,21 @@ try {
   info("states identical in a still frame", same.join(", ") || "none")
   await page.click('button[data-state="idle"]')
 
-  // 6. finishes render without errors and non-blank
-  for (const f of FINISHES) {
-    await page.click(`button[data-finish="${f}"]`)
-    await page.waitForTimeout(250)
-    const fr = paintedFraction(await pixels(page, SLOT, `finish-${f}`), 12)
-    check(`finish "${f}" paints and raises no errors`, fr > 0.3 && errors.length === 0, `${(fr * 100).toFixed(1)}% painted ${errors.join(" | ")}`)
+  // 6. the orb renders without errors and non-blank
+  {
+    const fr = paintedFraction(await pixels(page, SLOT, "vessel"), 12)
+    check("orb paints and raises no errors", fr > 0.3 && errors.length === 0, `${(fr * 100).toFixed(1)}% painted ${errors.join(" | ")}`)
   }
-  await page.click('button[data-finish="ink"]')
-  await page.waitForTimeout(250)
 
-  // 7. rebrand from outside: default ember vs consumer colors prop
-  const before = dominantHue(await pixels(page, SLOT, "palette-default"))
+  // 7. rebrand from outside: named ember vs consumer colors prop
+  await page.click('button[data-palette="ember"]')
+  await page.waitForTimeout(250)
+  const before = dominantHue(await pixels(page, SLOT, "palette-ember"))
   await page.click('button[data-harness="brand"]')
   await page.waitForTimeout(250)
   const brandedPx = await pixels(page, SLOT, "palette-brand")
   const after = dominantHue(brandedPx)
-  check("default palette paints warm (ember: hue 0-50)", before.hue >= 0 && before.hue <= 50, `hue ${before.hue.toFixed(0)}, ${before.n} px`)
+  check("ember palette paints warm (hue 0-50)", before.hue >= 0 && before.hue <= 50, `hue ${before.hue.toFixed(0)}, ${before.n} px`)
   check("colors prop repaints to the brand hue (#1f3fff: hue 210-250)", after.hue >= 210 && after.hue <= 250, `hue ${after.hue.toFixed(0)}, ${after.n} px`)
   await page.click('button[data-palette="moss"]')
   await page.waitForTimeout(250)
