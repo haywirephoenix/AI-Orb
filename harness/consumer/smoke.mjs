@@ -24,7 +24,7 @@ mkdirSync(shots, { recursive: true })
 // record why in FINDINGS.md.
 const LAUNCH_ARGS = JSON.parse(process.env.HARNESS_CHROMIUM_ARGS ?? "[]")
 
-const STATES = ["idle", "listening", "thinking", "speaking"] // types.ts OrbState
+const STATES = ["idle", "listening", "thinking", "speaking", "error", "noInput"] // types.ts OrbState
 
 const failures = []
 const check = (name, ok, detail) => {

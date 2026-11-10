@@ -4,7 +4,7 @@ import type { OrbState } from "ai-orb"
 
 /** The states below are typed against the package's own exported union, so if
  *  types.ts drops or renames one the build fails here. */
-const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking"]
+const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking", "error", "noInput"]
 
 /** Pure blue on all three stops: the "rebrand from outside" input. The smoke
  *  test selects ember (orange/red) first, so a hue near 230 can only come from

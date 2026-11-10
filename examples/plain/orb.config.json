@@ -33,6 +33,16 @@
       "level": 0.8,
       "response": 1,
       "palette": "discharge"
+    },
+    "error": {
+      "level": 0.3,
+      "response": 0,
+      "palette": "crimson"
+    },
+    "noInput": {
+      "level": 0.08,
+      "response": 0,
+      "palette": "porcelain"
     }
   }
 }

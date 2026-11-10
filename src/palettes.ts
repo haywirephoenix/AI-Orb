@@ -80,6 +80,18 @@ export const orbPalettes: Record<string, OrbPalette> = {
       body: "#04060f",
     },
   },
+
+  /** The error state: an unmistakable red, kept apart from ember's orange. */
+  crimson: {
+    light: {
+      stops: ["#b3121c", "#e5383b", "#ff8a80"],
+      body: "#f6eeee",
+    },
+    dark: {
+      stops: ["#d0161f", "#ff4538", "#ff9a8f"],
+      body: "#0d0607",
+    },
+  },
 }
 
 export type OrbPaletteName = keyof typeof orbPalettes

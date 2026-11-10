@@ -13,7 +13,7 @@
   </head>
   <body data-theme="dark">
     <div id="orb"></div>
-    <p class="keys">1 idle · 2 listening · 3 thinking · 4 speaking · H hide/show · Up/Down input level</p>
+    <p class="keys">1 idle · 2 listening · 3 thinking · 4 speaking · 5 error · 6 no input · H hide/show · Up/Down input level</p>
 
     <!-- Built by `npm run build:lib`. Exposes window.AIOrb. -->
     <script src="../../dist/ai-orb.js"></script>
@@ -39,8 +39,10 @@
         //   recognition.onstart  -> orb.setState("listening")
         //   onspeechend          -> orb.setState("thinking")    // recognising
         //   onresult             -> orb.setState("speaking")    // heard
+        //   onerror              -> orb.setState("error")
+        //   onnomatch / silence  -> orb.setState("noInput")
         //   onend                -> orb.hide()
-        var states = { "1": "idle", "2": "listening", "3": "thinking", "4": "speaking" }
+        var states = { "1": "idle", "2": "listening", "3": "thinking", "4": "speaking", "5": "error", "6": "noInput" }
         window.addEventListener("keydown", function (e) {
           if (states[e.key]) orb.setState(states[e.key])
           else if (e.key === "h" || e.key === "H") orb.visible ? orb.hide() : orb.show()

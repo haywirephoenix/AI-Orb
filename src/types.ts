@@ -1,5 +1,5 @@
 /** Agent presence states. Each must be distinguishable in a still frame (P8). */
-export type OrbState = "idle" | "listening" | "thinking" | "speaking"
+export type OrbState = "idle" | "listening" | "thinking" | "speaking" | "error" | "noInput"
 
 /** Which value structure the orb is drawn in. Not a palette — a light model (P4). */
 export type OrbField = "light" | "dark"

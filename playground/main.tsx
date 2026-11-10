@@ -5,7 +5,7 @@ import { DEFAULT_STATE_STYLES, Orb, dbToLevel, orbPalettes, useOrbAudio } from "
 import type { OrbConfig, OrbState, OrbStateStyles } from "../src"
 import "./styles.css"
 
-const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking"]
+const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking", "error", "noInput"]
 // "ember","moss", "porcelain", "discharge", 
 // const PALETTES = [ "iris", "spectrum"]  // restore with the Palette fieldset below
 
@@ -126,6 +126,8 @@ function App() {
     listening: { level: DEFAULT_STATE_STYLES.listening.level, palette: "moss" },
     thinking: { level: DEFAULT_STATE_STYLES.thinking.level, palette: "ember" },
     speaking: { level: DEFAULT_STATE_STYLES.speaking.level, palette: "discharge" },
+    error: { level: DEFAULT_STATE_STYLES.error.level, palette: "crimson" },
+    noInput: { level: DEFAULT_STATE_STYLES.noInput.level, palette: "porcelain" },
   })
   const setStyle = (s: OrbState, patch: Partial<{ level: number; palette: string }>) =>
     setStateStyles((prev) => ({ ...prev, [s]: { ...prev[s], ...patch } }))

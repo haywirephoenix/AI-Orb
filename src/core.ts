@@ -88,14 +88,20 @@ export interface OrbHandle {
 }
 
 /**
- * Levels and audio response only: every state uses the base palette until
- * `states` says otherwise. Only listening and speaking react to sound.
+ * The four voice states use the base palette until `states` says otherwise.
+ * `error` and `noInput` carry their own palettes so they read correctly with no
+ * config at all. Only listening and speaking react to sound.
  */
-export const DEFAULT_STATE_STYLES: Record<OrbState, { level: number; response: number }> = {
+export const DEFAULT_STATE_STYLES: Record<
+  OrbState,
+  { level: number; response: number; palette?: string }
+> = {
   idle: { level: 0.22, response: 0 },
   listening: { level: 0.43, response: 1 },
   thinking: { level: 0.55, response: 0 },
   speaking: { level: 0.8, response: 1 },
+  error: { level: 0, response: 0, palette: "crimson" },
+  noInput: { level: 0, response: 0, palette: "porcelain" },
 }
 
 const STATE_LABEL: Record<OrbState, string> = {
@@ -103,6 +109,8 @@ const STATE_LABEL: Record<OrbState, string> = {
   listening: "Assistant listening",
   thinking: "Assistant thinking",
   speaking: "Assistant speaking",
+  error: "Assistant error",
+  noInput: "No input detected",
 }
 
 /** Grow overshoots slightly and settles; shrink accelerates away. */

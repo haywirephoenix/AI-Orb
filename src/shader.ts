@@ -135,4 +135,6 @@ export const STATE_INDEX: Record<string, number> = {
   listening: 1,
   thinking: 2,
   speaking: 3,
+  error: 4,
+  noInput: 5,
 }
