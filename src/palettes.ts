@@ -93,4 +93,4 @@ const FINISH_DEFAULT_PALETTE: Record<string, OrbPaletteName> = {
 }
 
 export const defaultPaletteFor = (finish: string): OrbPaletteName =>
-  FINISH_DEFAULT_PALETTE[finish] ?? "ember"
+  FINISH_DEFAULT_PALETTE[finish] ?? "spectrum"

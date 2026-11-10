@@ -1,6 +1,6 @@
 :root {
   --bg: #eef0f3;
-  --surface: #fff;
+  --surface: #ffffffeb;
   --ink: #12151a;
   --muted: #69717d;
   --rule: #d7dce3;
@@ -11,7 +11,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0a0c0f;
-    --surface: #14181f;
+    --surface: #14181feb;
     --ink: #e7ebf1;
     --muted: #8b94a1;
     --rule: #262d37;
@@ -23,9 +23,16 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  /* background: var(--bg); */
   color: var(--ink);
   font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  background: url(bg.jpg) no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+
 }
 
 main {
@@ -47,8 +54,8 @@ header p { color: var(--muted); margin: 0; }
   align-items: center;
   gap: 1rem;
   padding: 2.5rem;
-  background: var(--surface);
-  border: 1px solid var(--rule);
+  /* background: var(--surface); */
+  /* border: 1px solid var(--rule); */
 }
 
 .orb-hero { width: 240px; height: 240px; }
@@ -78,7 +85,8 @@ legend {
   font: 0.62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink);
+  font-weight: bold;
   padding: 0 0.4rem;
 }
 
@@ -147,3 +155,4 @@ figcaption {
   border-radius: 999px;
   padding: 0.5rem 0.95rem;
 }
+

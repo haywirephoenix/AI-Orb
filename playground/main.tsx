@@ -5,9 +5,11 @@ import { Orb, useOrbAudio } from "../src"
 import type { OrbFinish, OrbState } from "../src"
 import "./styles.css"
 
-const FINISHES: OrbFinish[] = ["ink", "pearl", "vessel", "aurora", "plasma"]
+//"ink", "pearl", "aurora", "plasma"
+const FINISHES: OrbFinish[] = ["vessel"]
 const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking"]
-const PALETTES = ["ember", "iris", "moss", "porcelain", "discharge"]
+// "ember","moss", "porcelain", "discharge", 
+// const PALETTES = [ "iris", "spectrum"]  // restore with the Palette fieldset below
 
 /** A voiced source shaped into syllables, so the orb reacts to a real waveform. */
 function useSynthesisedSpeech() {
@@ -98,13 +100,14 @@ function useSynthesisedSpeech() {
 }
 
 function App() {
-  const [finish, setFinish] = useState<OrbFinish>("ink")
-  const [palette, setPalette] = useState("ember")
+  const [finish, setFinish] = useState<OrbFinish>("vessel")
+  const [palette] = useState("iris") // setPalette: restore with the Palette fieldset
   const [state, setState] = useState<OrbState>("idle")
   const [micStream, setMicStream] = useState<MediaStream | null>(null)
   // Holding a level steady is the only way to actually inspect the reaction.
   const [heldOut, setHeldOut] = useState(0)
   const [heldIn, setHeldIn] = useState(0)
+  const [heroScale, setHeroScale] = useState(155)//89
 
   const { speak, speaking, analyserRef } = useSynthesisedSpeech()
 
@@ -152,11 +155,6 @@ function App() {
 
   return (
     <main>
-      <header>
-        <h1>AI-Orb</h1>
-        <p>The component, running. Every orb below is the same `&lt;Orb /&gt;`.</p>
-      </header>
-
       <section className="stage">
         <Orb
           finish={finish}
@@ -165,13 +163,24 @@ function App() {
           outputLevelRef={() => Math.max(heldOut, outputLevel.current)}
           inputLevelRef={() => Math.max(heldIn, inputLevel.current)}
           className="orb-hero"
+          style={{ width: heroScale, height: heroScale }}
         />
         <p className="readout" data-testid="readout">
-          {finish} · {palette} · {state}
+          {state} 
+          {/* {palette} ·  */}
         </p>
       </section>
 
       <section className="controls">
+        {/* <fieldset>
+          <legend>Palette</legend>
+          {PALETTES.map((p) => (
+            <button key={p} onClick={() => setPalette(p)} aria-pressed={palette === p}>
+              {p}
+            </button>
+          ))}
+        </fieldset> */}
+
         <fieldset>
           <legend>Finish</legend>
           {FINISHES.map((f) => (
@@ -182,12 +191,9 @@ function App() {
         </fieldset>
 
         <fieldset>
-          <legend>Palette</legend>
-          {PALETTES.map((p) => (
-            <button key={p} onClick={() => setPalette(p)} aria-pressed={palette === p}>
-              {p}
-            </button>
-          ))}
+          <legend>Background</legend>
+          <button>Off</button>
+          <button>On</button>
         </fieldset>
 
         <fieldset>
@@ -228,7 +234,7 @@ function App() {
             <input
               type="range"
               min={0}
-              max={1}
+              max={0.23}
               step={0.01}
               value={heldIn}
               data-testid="held-in"
@@ -236,71 +242,29 @@ function App() {
             />
           </label>
         </fieldset>
+
+        <fieldset className="holds">
+          <legend>Scale</legend>
+          <label>
+            <span>scale {heroScale}px</span>
+            <input
+              type="range"
+              min={24}
+              max={240}
+              step={1}
+              value={heroScale}
+              data-testid="heroScale"
+              onChange={(e) => setHeroScale(Number(e.target.value))}
+            />
+          </label>
+        </fieldset>
+
+
       </section>
 
-      <section>
-        <h2>All finishes</h2>
-        <div className="grid" data-testid="grid">
-          {FINISHES.map((f, i) => (
-            <figure key={f}>
-              <Orb finish={f} state={state} seed={i} className="orb-tile" />
-              <figcaption>{f}</figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
+      
 
-      <section>
-        <h2>Sizes</h2>
-        <p className="hint">
-          Grain, striations and thin filaments fade out below ~96px, so an avatar reads as a
-          material rather than as dither.
-        </p>
-        <div className="sizes">
-          {[24, 32, 40, 64, 96, 140].map((size) => (
-            <Orb
-              key={size}
-              finish={finish}
-              palette={palette}
-              seed={size}
-              style={{ width: size, height: size }}
-            />
-          ))}
-        </div>
-      </section>
 
-      <section>
-        <h2>In a conversation</h2>
-        <p className="hint">The same component at 32px, holding the turn beside the message.</p>
-        <div className="thread">
-          <div className="msg agent">
-            <Orb
-              finish={finish}
-              palette={palette}
-              state={state}
-              outputLevelRef={() => Math.max(heldOut, outputLevel.current)}
-              inputLevelRef={() => Math.max(heldIn, inputLevel.current)}
-              style={{ width: 32, height: 32, flex: "0 0 auto" }}
-              label="Assistant"
-            />
-            <p>Hi there — I&rsquo;m a support technician. How can I help you today?</p>
-          </div>
-          <div className="msg user">
-            <p>My laptop fan is making a grinding noise.</p>
-          </div>
-          <div className="msg agent">
-            <Orb
-              finish={finish}
-              palette={palette}
-              state={state}
-              outputLevelRef={() => Math.max(heldOut, outputLevel.current)}
-              style={{ width: 32, height: 32, flex: "0 0 auto" }}
-              label="Assistant"
-            />
-            <p>That usually means debris in the fan housing. How old is the machine?</p>
-          </div>
-        </div>
-      </section>
     </main>
   )
 }
