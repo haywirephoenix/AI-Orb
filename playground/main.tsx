@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useRef, useState } from "react"
 import { createRoot } from "react-dom/client"
 
 import { DEFAULT_STATE_STYLES, Orb, dbToLevel, orbPalettes, useOrbAudio } from "../src"
-import type { OrbState, OrbStateStyles } from "../src"
+import type { OrbConfig, OrbState, OrbStateStyles } from "../src"
 import "./styles.css"
 
 const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking"]
@@ -136,6 +136,47 @@ function App() {
   const [rimInputCap, setRimInputCap] = useState(0.11)
 
   const { speak, speaking, analyserRef } = useSynthesisedSpeech()
+
+  // Everything tuned above, as the plain data a build ships with.
+  const round = (v: number) => Math.round(v * 1000) / 1000
+  const exportConfig: OrbConfig = {
+    palette,
+    size: heroScale,
+    bodyOpacity: round(bodyOpacity),
+    audioResponse: round(audioResponse),
+    transitionMs,
+    rim: { inner: round(rimInner), fade: round(rimFade), strength: round(rimStrength), inputCap: round(rimInputCap) },
+    loudness: { threshold: round(dbToLevel(thresholdDb)) },
+    states: Object.fromEntries(
+      STATES.map((s) => [
+        s,
+        {
+          level: round(stateStyles[s].level),
+          response: DEFAULT_STATE_STYLES[s].response,
+          ...(stateStyles[s].palette ? { palette: stateStyles[s].palette } : {}),
+        },
+      ]),
+    ),
+  }
+  const exportJson = JSON.stringify(exportConfig, null, 2)
+  const [copied, setCopied] = useState(false)
+  const copyConfig = async () => {
+    try {
+      await navigator.clipboard.writeText(exportJson)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard blocked: the JSON is still in the panel to select by hand */
+    }
+  }
+  const downloadConfig = () => {
+    const url = URL.createObjectURL(new Blob([`${exportJson}\n`], { type: "application/json" }))
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "orb.config.json"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   // The agent analyser is created per utterance, so bridge it through a ref.
   const outputLevel = useRef(0)
@@ -419,6 +460,15 @@ function App() {
         </fieldset>
         </div>
 
+        <fieldset className="export">
+          <legend>Export</legend>
+          <button onClick={copyConfig}>{copied ? "copied" : "copy JSON"}</button>
+          <button onClick={downloadConfig}>download orb.config.json</button>
+          <details>
+            <summary>preview</summary>
+            <pre data-testid="export-json">{exportJson}</pre>
+          </details>
+        </fieldset>
       </section>
 
       

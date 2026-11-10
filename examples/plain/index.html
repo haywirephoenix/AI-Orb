@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI-Orb plain JS</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #07080e; color: #8b94a1; font: 14px/1.5 system-ui, sans-serif; }
+      body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; }
+      #orb { display: flex; align-items: center; justify-content: center; }
+      .keys { font: 12px ui-monospace, monospace; letter-spacing: 0.06em; }
+    </style>
+  </head>
+  <body data-theme="dark">
+    <div id="orb"></div>
+    <p class="keys">1 idle · 2 listening · 3 thinking · 4 speaking · H hide/show · Up/Down input level</p>
+
+    <!-- Built by `npm run build:lib`. Exposes window.AIOrb. -->
+    <script src="../../dist/ai-orb.js"></script>
+    <script>
+      // The JSON exported from the playground. Loaded from a file so the look
+      // can change without touching code; falls back to library defaults.
+      function loadConfig() {
+        return fetch("orb.config.json")
+          .then(function (r) { return r.ok ? r.json() : {} })
+          .catch(function () { return {} })
+      }
+
+      loadConfig().then(function (config) {
+        // Your speech recogniser feeds this; here the arrow keys do.
+        var inputLevel = 0
+
+        var orb = AIOrb.createOrb(document.getElementById("orb"), Object.assign({}, config, {
+          state: "idle",
+          inputLevel: function () { return inputLevel },
+        }))
+
+        // Map the recogniser's phases onto orb states, e.g.
+        //   recognition.onstart  -> orb.setState("listening")
+        //   onspeechend          -> orb.setState("thinking")    // recognising
+        //   onresult             -> orb.setState("speaking")    // heard
+        //   onend                -> orb.hide()
+        var states = { "1": "idle", "2": "listening", "3": "thinking", "4": "speaking" }
+        window.addEventListener("keydown", function (e) {
+          if (states[e.key]) orb.setState(states[e.key])
+          else if (e.key === "h" || e.key === "H") orb.visible ? orb.hide() : orb.show()
+          else if (e.key === "ArrowUp") inputLevel = Math.min(1, inputLevel + 0.1)
+          else if (e.key === "ArrowDown") inputLevel = Math.max(0, inputLevel - 0.1)
+        })
+
+        window.orb = orb // for poking at in devtools
+      })
+    </script>
+  </body>
+</html>

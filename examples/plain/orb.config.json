@@ -1,0 +1,38 @@
+{
+  "palette": "iris",
+  "size": 155,
+  "bodyOpacity": 0.92,
+  "audioResponse": 0.46,
+  "transitionMs": 420,
+  "rim": {
+    "inner": 0.55,
+    "fade": 0.99,
+    "strength": 0.1,
+    "inputCap": 0.11
+  },
+  "loudness": {
+    "threshold": 0.8
+  },
+  "states": {
+    "idle": {
+      "level": 0.22,
+      "response": 0,
+      "palette": "iris"
+    },
+    "listening": {
+      "level": 0.43,
+      "response": 1,
+      "palette": "moss"
+    },
+    "thinking": {
+      "level": 0.55,
+      "response": 0,
+      "palette": "ember"
+    },
+    "speaking": {
+      "level": 0.8,
+      "response": 1,
+      "palette": "discharge"
+    }
+  }
+}

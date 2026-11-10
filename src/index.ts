@@ -1,6 +1,12 @@
 export { Orb, DEFAULT_STATE_STYLES } from "./orb"
 export type { OrbProps } from "./orb"
 
+export { createOrb } from "./core"
+export type { OrbConfig, OrbHandle, OrbOptions } from "./core"
+
+export { connectAudioLevel } from "./audio"
+export type { AudioLevel, AudioLevelOptions } from "./audio"
+
 export { useOrbAudio } from "./use-orb-audio"
 export type { OrbAudioSource, UseOrbAudioOptions } from "./use-orb-audio"
 

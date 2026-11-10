@@ -215,3 +215,21 @@ figcaption {
 }
 .inline-slider input[type="range"] { accent-color: var(--accent); width: 100%; }
 
+.export details { width: 100%; }
+.export summary {
+  font: 0.64rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  margin-top: 0.4rem;
+}
+.export pre {
+  font: 0.7rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  max-height: 260px;
+  overflow: auto;
+  margin: 0.5rem 0 0;
+  padding: 0.6rem;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+}

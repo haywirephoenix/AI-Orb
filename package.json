@@ -18,6 +18,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:lib": "vite build --config vite.lib.config.ts",
     "typecheck": "tsc --noEmit",
     "harness:pack": "node harness/pack.mjs",
     "harness:install": "npm run harness:pack && cd harness/consumer && rm -rf node_modules/ai-orb && npm install --no-package-lock --no-audit --no-fund",
