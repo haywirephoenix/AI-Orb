@@ -232,7 +232,10 @@ export class OrbRenderer {
   private resize() {
     const gl = this.gl
     if (!gl) return
-    const rect = this.canvas.getBoundingClientRect()
+    // Layout size, not getBoundingClientRect: the orb's show/hide animation
+    // scales it with a CSS transform, and the backing store must not shrink
+    // with it.
+    const rect = { width: this.canvas.clientWidth, height: this.canvas.clientHeight }
     if (!rect.width || !rect.height) return
     // Detail is a function of CSS size, not device pixels: a 32px avatar on a
     // 3x screen is still a 32px avatar to the eye. Grain, striations and thin

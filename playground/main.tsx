@@ -114,6 +114,8 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle("bg-image", showBg)
   }, [showBg])
+  const [orbVisible, setOrbVisible] = useState(true)
+  const [transitionMs, setTransitionMs] = useState(420)
   const [heroScale, setHeroScale] = useState(155)//89
   // Outer ring. Starts at the dark-field defaults from DEFAULT_RIM.
   const [rimInner, setRimInner] = useState(0.55)//0.72
@@ -186,6 +188,8 @@ function App() {
           inputLevelRef={() => Math.max(heldIn, testInDb > -60 ? dbToLevel(testInDb) : 0, inputLevel.current)}
           audioResponse={audioResponse}
           bodyOpacity={bodyOpacity}
+          visible={orbVisible}
+          transitionMs={transitionMs}
           loudness={{ threshold: dbToLevel(thresholdDb) }}
           className="orb-hero"
           style={{ width: heroScale, height: heroScale }}
@@ -353,6 +357,26 @@ function App() {
         <div className="row">
         <fieldset className="holds">
           <legend>Scale</legend>
+          <div>
+            <button onClick={() => setOrbVisible(true)} aria-pressed={orbVisible}>
+              show
+            </button>{" "}
+            <button onClick={() => setOrbVisible(false)} aria-pressed={!orbVisible}>
+              hide
+            </button>
+          </div>
+          <label>
+            <span>transition {transitionMs}ms</span>
+            <input
+              type="range"
+              min={0}
+              max={1500}
+              step={10}
+              value={transitionMs}
+              data-testid="transition-ms"
+              onChange={(e) => setTransitionMs(Number(e.target.value))}
+            />
+          </label>
           <label>
             <span>scale {heroScale}px</span>
             <input

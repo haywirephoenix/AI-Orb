@@ -60,7 +60,20 @@ export interface OrbProps {
   style?: CSSProperties
   /** Announced to assistive tech. Defaults to a description of the state. */
   label?: string
+
+  /**
+   * Grows from 0 to full size when it becomes true (including on mount) and
+   * shrinks to 0 when it becomes false. Rendering pauses once fully hidden.
+   * Default true.
+   */
+  visible?: boolean
+  /** Length of the grow animation in ms; shrinking takes 75% of this. Default 420. */
+  transitionMs?: number
 }
+
+/** Grow overshoots slightly and settles; shrink accelerates away. */
+const EASE_IN = "cubic-bezier(0.34, 1.45, 0.64, 1)"
+const EASE_OUT = "cubic-bezier(0.55, 0, 0.75, 0)"
 
 /**
  * Levels and audio response only: every state uses the base palette until
@@ -160,10 +173,18 @@ export function Orb({
   className,
   style,
   label,
+  visible = true,
+  transitionMs = 420,
 }: OrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<OrbRenderer | null>(null)
   const [fallback, setFallback] = useState(false)
+
+  // `shown` drives the transform. It starts false and flips after a frame so
+  // the grow plays on mount too, not just on later toggles.
+  const [shown, setShown] = useState(false)
+  const visibleRef = useRef(visible)
+  visibleRef.current = visible
 
   const field = useResolvedField(fieldProp)
   const reduced = usePrefersReducedMotion()
@@ -225,12 +246,12 @@ export function Orb({
 
     rendererRef.current = renderer
     if (reduced) renderer.renderStill()
-    else renderer.start()
+    else if (visibleRef.current) renderer.start()
 
     const onVisibility = () => {
       if (reduced) return
       if (document.hidden) renderer.stop()
-      else renderer.start()
+      else if (visibleRef.current) renderer.start()
     }
     document.addEventListener("visibilitychange", onVisibility)
 
@@ -264,6 +285,43 @@ export function Orb({
     if (reduced) renderer.renderStill()
   }, [field, resolved, state, grain, seed, speed, reduced, rim, level, response, loudness, bodyOpacity])
 
+  // Show/hide. Rendering starts before the grow so the first scaled-up frame is
+  // live, and stops after the shrink (see onTransitionEnd) to free the GPU.
+  const animate = !reduced && transitionMs > 0
+  useEffect(() => {
+    if (visible) {
+      if (!reduced) rendererRef.current?.start()
+      if (!animate) {
+        setShown(true)
+        return
+      }
+      // Two frames: one to paint scale(0), one to start the transition from it.
+      let raf2 = 0
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setShown(true))
+      })
+      return () => {
+        cancelAnimationFrame(raf1)
+        cancelAnimationFrame(raf2)
+      }
+    }
+    setShown(false)
+    if (!animate) rendererRef.current?.stop()
+  }, [visible, animate, reduced])
+
+  const onTransitionEnd = (event: React.TransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || event.propertyName !== "transform") return
+    if (!visibleRef.current) rendererRef.current?.stop()
+  }
+
+  const motion: CSSProperties = {
+    transform: `scale(${shown ? 1 : 0})`,
+    transition: animate
+      ? `transform ${shown ? transitionMs : Math.round(transitionMs * 0.75)}ms ${shown ? EASE_IN : EASE_OUT}`
+      : "none",
+    pointerEvents: visible ? undefined : "none",
+  }
+
   // No WebGL: a static approximation rather than an empty hole.
   if (fallback) {
     return (
@@ -273,9 +331,11 @@ export function Orb({
           borderRadius: "50%",
           background: `radial-gradient(circle at 34% 30%, ${resolved.stops[2]}, ${resolved.stops[1]} 45%, ${resolved.stops[0]} 100%)`,
           ...style,
+          ...motion,
         }}
         role="img"
         aria-label={label ?? STATE_LABEL[state]}
+        aria-hidden={visible ? undefined : true}
       />
     )
   }
@@ -283,9 +343,11 @@ export function Orb({
   return (
     <div
       className={className}
-      style={{ position: "relative", borderRadius: "50%", overflow: "hidden", ...style }}
+      style={{ position: "relative", borderRadius: "50%", overflow: "hidden", ...style, ...motion }}
+      onTransitionEnd={onTransitionEnd}
       role="img"
       aria-label={label ?? STATE_LABEL[state]}
+      aria-hidden={visible ? undefined : true}
     >
       <canvas
         ref={canvasRef}
