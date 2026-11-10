@@ -8,8 +8,10 @@ import type {
   LevelSource,
   OrbField,
   OrbFieldColors,
+  OrbLoudness,
   OrbRim,
   OrbState,
+  OrbStateStyles,
 } from "./types"
 
 export interface OrbProps {
@@ -36,11 +38,34 @@ export interface OrbProps {
   speed?: number
   /** Outer ring position, colour and strength. Unset fields use the defaults. */
   rim?: OrbRim
+  /**
+   * Per-state resting level and colours, merged over `DEFAULT_STATE_STYLES`.
+   * e.g. `{ listening: { level: 0.3, palette: "iris" } }`.
+   */
+  states?: OrbStateStyles
+  /**
+   * Global multiplier on how much sound amplitude moves the bodies. Applied on
+   * top of each state's `response`. Default 1.
+   */
+  audioResponse?: number
+  /** Fade toward a warning palette when the level goes over a threshold. */
+  loudness?: OrbLoudness
 
   className?: string
   style?: CSSProperties
   /** Announced to assistive tech. Defaults to a description of the state. */
   label?: string
+}
+
+/**
+ * Levels and audio response only: every state uses the base palette until
+ * `states` says otherwise. Only listening and speaking react to sound.
+ */
+export const DEFAULT_STATE_STYLES: Record<OrbState, { level: number; response: number }> = {
+  idle: { level: 0.22, response: 0 },
+  listening: { level: 0.43, response: 1 },
+  thinking: { level: 0.55, response: 0 },
+  speaking: { level: 0.8, response: 1 },
 }
 
 const STATE_LABEL: Record<OrbState, string> = {
@@ -123,6 +148,9 @@ export function Orb({
   seed = 0,
   speed = 1,
   rim,
+  states,
+  audioResponse = 1,
+  loudness,
   className,
   style,
   label,
@@ -134,13 +162,24 @@ export function Orb({
   const field = useResolvedField(fieldProp)
   const reduced = usePrefersReducedMotion()
 
+  const stateStyle = { ...DEFAULT_STATE_STYLES[state], ...states?.[state] }
+  const level = Math.min(1, Math.max(0, stateStyle.level ?? 0))
+  const response = Math.max(0, (stateStyle.response ?? 0) * audioResponse)
+  const statePalette = stateStyle.palette
+  const stateColors = stateStyle.colors
+  const stateColorsKey = stateColors?.join()
+
+  // Precedence: state colours, state palette, `colors`, `palette`, default.
   const resolved: OrbFieldColors = useMemo(() => {
-    const base = (orbPalettes[palette ?? DEFAULT_PALETTE] ?? orbPalettes[DEFAULT_PALETTE])[field]
+    const name = statePalette ?? palette ?? DEFAULT_PALETTE
+    const base = (orbPalettes[name] ?? orbPalettes[DEFAULT_PALETTE])[field]
     return {
-      stops: colors ?? base.stops,
+      stops: stateColors ?? (statePalette ? base.stops : (colors ?? base.stops)),
       body: bodyColor ?? base.body,
     }
-  }, [palette, colors, bodyColor, field])
+    // stateColors is compared by content so an inline array does not churn.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [palette, colors, bodyColor, field, statePalette, stateColorsKey])
 
   // Kept in a ref so changing the source never re-creates the WebGL context.
   const levels = useRef<LevelGetters>({ input: () => 0, output: () => 0 })
@@ -162,6 +201,9 @@ export function Orb({
         speed,
         still: reduced,
         rim,
+        level,
+        response,
+        loudness,
       },
       {
         getInputLevel: () => levels.current.input(),
@@ -207,9 +249,12 @@ export function Orb({
       speed,
       still: reduced,
       rim,
+      level,
+      response,
+      loudness,
     })
     if (reduced) renderer.renderStill()
-  }, [field, resolved, state, grain, seed, speed, reduced, rim])
+  }, [field, resolved, state, grain, seed, speed, reduced, rim, level, response, loudness])
 
   // No WebGL: a static approximation rather than an empty hole.
   if (fallback) {

@@ -43,7 +43,47 @@ export interface OrbRim {
   fade?: number
   /** Brightness added at the ring's peak. Default 0.26 light, 0.64 dark. */
   strength?: number
+  /**
+   * Ceiling on the input level the ring and its listening pulse respond to,
+   * 0-1. The bodies still see the full level. Default 1 (no cap).
+   */
+  inputCap?: number
 }
+
+/**
+ * How the orb looks in one state. `level` is a resting energy for the bodies
+ * (0 calm and gathered at the centre, 1 spread to the glass and moving fast);
+ * live output audio adds on top of it. Colours, when given, replace the base
+ * palette for that state only. The orb eases between states.
+ */
+export interface OrbStateStyle {
+  /** 0-1 resting body energy. */
+  level?: number
+  /** Named palette from `orbPalettes`. Falls back to the orb's `palette`. */
+  palette?: string
+  /** Three explicit stops. Overrides `palette`. */
+  colors?: [string, string, string]
+  /**
+   * How strongly live audio moves the bodies in this state, multiplied by the
+   * orb's `audioResponse`. 0 ignores sound entirely.
+   */
+  response?: number
+}
+
+/**
+ * A "too loud" warning. While the audio level is above `threshold` the stops
+ * fade toward `colors` (red by default), and back when it drops.
+ */
+export interface OrbLoudness {
+  /** 0-1 level, same scale as the level refs. Use `dbToLevel` to set it in dB. */
+  threshold: number
+  /** Level range over which the fade completes. Default 0.08. */
+  softness?: number
+  /** Warning stops. Default a red ramp. */
+  colors?: [string, string, string]
+}
+
+export type OrbStateStyles = Partial<Record<OrbState, OrbStateStyle>>
 
 export interface OrbRendererConfig {
   field: OrbField
@@ -59,4 +99,10 @@ export interface OrbRendererConfig {
   still: boolean
   /** Overrides for the outer ring. */
   rim?: OrbRim
+  /** 0-1 resting body energy for the current state. Eased, not snapped. */
+  level: number
+  /** Audio-to-body multiplier for the current state (state response x audioResponse). */
+  response: number
+  /** Optional too-loud warning. */
+  loudness?: OrbLoudness
 }

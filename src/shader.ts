@@ -27,7 +27,7 @@ uniform float uRing;    // accumulated ring phase, advanced by input level
 uniform int   uState;   // 0 idle · 1 listening · 2 thinking · 3 speaking
 uniform float uDark;    // 0 light field, 1 dark field
 uniform float uIn;      // 0-1 microphone level
-uniform float uOut;     // 0-1 agent speech level
+uniform float uOut;     // body energy: state level + audio, 0-1.5
 uniform float uGrain;
 uniform float uSeed;
 uniform float uDetail;  // 0 at avatar sizes, 1 at hero sizes
@@ -51,7 +51,7 @@ float hash21(vec2 p) {
 
 void main() {
   // Output swells the orb, input contracts it very slightly. Budget is ±2% (P2).
-  float grow = 1.0 + 0.020 * uOut - 0.008 * uIn;
+  float grow = 1.0 + 0.020 * min(uOut, 1.0) - 0.008 * uIn;
   vec2 p = (vUv - 0.5) * 2.0 / grow;
   float r = length(p);
 

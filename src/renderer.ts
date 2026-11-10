@@ -17,10 +17,38 @@ export interface OrbRendererHooks {
 
 const DPR_CAP = 2
 
+/** Highest body energy. Above 1 the bodies push further out; the swell is capped in the shader. */
+const MAX_ENERGY = 1.5
+
+const WARNING_COLORS: [string, string, string] = ["#c8141e", "#ff3b30", "#ff8a80"]
+
+/**
+ * Meter-style dB to the 0-1 level scale: `floor` dB (default -60) is 0, 0 dB
+ * is 1, linear in between.
+ */
+export function dbToLevel(db: number, floor = -60): number {
+  return clamp01((db - floor) / -floor)
+}
+
 /** The outer ring as originally tuned. Strength and colour differ per field. */
 export const DEFAULT_RIM: Record<OrbField, Required<OrbRim>> = {
-  light: { color: "#8cc2f0", inner: 0.72, fade: 0.88, strength: 0.26 },
-  dark: { color: "#85d6ff", inner: 0.72, fade: 0.88, strength: 0.64 },
+  light: { color: "#8cc2f0", inner: 0.72, fade: 0.88, strength: 0.26, inputCap: 1 },
+  dark: { color: "#85d6ff", inner: 0.72, fade: 0.88, strength: 0.64, inputCap: 1 },
+}
+
+type Rgb = [number, number, number]
+
+const colorCache = new Map<string, Rgb>()
+
+/** parseColor, memoised: it runs per frame now that colours are eased. */
+function rgb(input: string): Rgb {
+  let c = colorCache.get(input)
+  if (!c) {
+    c = parseColor(input)
+    if (colorCache.size > 256) colorCache.clear()
+    colorCache.set(input, c)
+  }
+  return c
 }
 
 /** #rgb, #rrggbb, or anything else the canvas can parse, to linear-ish 0-1 RGB. */
@@ -80,6 +108,11 @@ export class OrbRenderer {
   private ring = 0
   private inLevel = 0
   private outLevel = 0
+  private stateLevel = 0
+  private warn = 0
+
+  // Colours actually drawn, eased toward the configured target on state change.
+  private shown: { c1: Rgb; c2: Rgb; c3: Rgb; body: Rgb } | null = null
 
   private detail = 1
 
@@ -251,7 +284,27 @@ export class OrbRenderer {
   renderStill(atSeconds = 6) {
     if (!this.supported) return
     this.resize()
-    this.draw(atSeconds, atSeconds, 0, 0, 0)
+    // No easing in a still: jump straight to the state's look.
+    this.shown = null
+    this.ease(1)
+    this.stateLevel = this.config.level
+    this.draw(atSeconds, atSeconds, 0, 0, this.config.level)
+  }
+
+  /** Move the drawn colours a fraction `k` of the way to the configured ones. */
+  private ease(k: number) {
+    const { stops, body } = this.config.colors
+    const target = { c1: rgb(stops[0]), c2: rgb(stops[1]), c3: rgb(stops[2]), body: rgb(body) }
+    if (!this.shown) {
+      this.shown = {
+        c1: [...target.c1], c2: [...target.c2], c3: [...target.c3], body: [...target.body],
+      }
+      return
+    }
+    for (const key of ["c1", "c2", "c3", "body"] as const) {
+      const s = this.shown[key], t = target[key]
+      for (let i = 0; i < 3; i++) s[i] += (t[i] - s[i]) * k
+    }
   }
 
   private frame(ts: number) {
@@ -272,34 +325,60 @@ export class OrbRenderer {
     this.inLevel += (rawIn - this.inLevel) * k
     this.outLevel += (rawOut - this.outLevel) * k
 
+    // State changes ease over ~0.3s for colour and ~0.4s for level, so a
+    // switch reads as a transition rather than a cut.
+    this.ease(Math.min(1, dt * 7))
+    this.stateLevel += (this.config.level - this.stateLevel) * Math.min(1, dt * 5)
+
+    // The state sets a resting energy; sound adds to it, scaled by the state's
+    // response. Either voice counts: the mic while listening, the agent while speaking.
+    const amplitude = Math.max(this.inLevel, this.outLevel)
+    const energy = Math.min(MAX_ENERGY, this.stateLevel + amplitude * this.config.response)
+
+    // Too loud: ease toward the warning stops while over the threshold.
+    const loud = this.config.loudness
+    let warnTarget = 0
+    if (loud) {
+      const soft = Math.max(0.001, loud.softness ?? 0.08)
+      warnTarget = clamp01((amplitude - loud.threshold) / soft)
+    }
+    this.warn += (warnTarget - this.warn) * Math.min(1, dt * 8)
+
     // Cumulative, so speech accelerates the interior instead of just brightening
     // it — motion gains inertia the way the ElevenLabs shader does.
-    this.flow += dt * this.config.speed * (1 + this.outLevel * 3.2)
+    this.flow += dt * this.config.speed * (1 + energy * 3.2)
     this.ring += dt * (0.42 + this.inLevel * 0.5)
 
     if (!this.visible) return
     this.resize()
-    this.draw(t, this.flow, this.ring, this.inLevel, this.outLevel)
+    this.draw(t, this.flow, this.ring, this.inLevel, energy)
   }
 
   private draw(time: number, flow: number, ring: number, input: number, output: number) {
     const gl = this.gl
     if (!gl || !this.program) return
 
-    const { state, colors, field, grain, seed } = this.config
-    const c1 = parseColor(colors.stops[0])
-    const c2 = parseColor(colors.stops[1])
-    const c3 = parseColor(colors.stops[2])
-    const body = parseColor(colors.body)
+    const { state, field, grain, seed } = this.config
+    if (!this.shown) this.ease(1)
+    let { c1, c2, c3 } = this.shown!
+    const body = this.shown!.body
+    if (this.warn > 0.001) {
+      const w = (this.config.loudness?.colors ?? WARNING_COLORS).map(rgb)
+      const k = this.warn
+      const mix = (a: Rgb, b: Rgb): Rgb => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]
+      c1 = mix(c1, w[0]); c2 = mix(c2, w[1]); c3 = mix(c3, w[2])
+    }
     const rim = { ...DEFAULT_RIM[field], ...this.config.rim }
-    const rc = parseColor(rim.color)
+    const rc = rgb(rim.color)
 
     gl.uniform1f(this.loc.uTime, time)
     gl.uniform1f(this.loc.uFlow, flow)
     gl.uniform1f(this.loc.uRing, ring)
     gl.uniform1i(this.loc.uState, STATE_INDEX[state] ?? 0)
     gl.uniform1f(this.loc.uDark, field === "dark" ? 1 : 0)
-    gl.uniform1f(this.loc.uIn, input)
+    // uIn only drives the boundary (ring pulse and the slight contraction), so
+    // capping it here tames the ring without touching the bodies.
+    gl.uniform1f(this.loc.uIn, Math.min(input, clamp01(rim.inputCap)))
     gl.uniform1f(this.loc.uOut, output)
     gl.uniform1f(this.loc.uGrain, grain)
     gl.uniform1f(this.loc.uSeed, seed)

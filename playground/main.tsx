@@ -1,8 +1,8 @@
 import { StrictMode, useEffect, useRef, useState } from "react"
 import { createRoot } from "react-dom/client"
 
-import { Orb, useOrbAudio } from "../src"
-import type { OrbState } from "../src"
+import { DEFAULT_STATE_STYLES, Orb, dbToLevel, orbPalettes, useOrbAudio } from "../src"
+import type { OrbState, OrbStateStyles } from "../src"
 import "./styles.css"
 
 const STATES: OrbState[] = ["idle", "listening", "thinking", "speaking"]
@@ -104,11 +104,28 @@ function App() {
   // Holding a level steady is the only way to actually inspect the reaction.
   const [heldOut, setHeldOut] = useState(0)
   const [heldIn, setHeldIn] = useState(0)
+  // Audio tuning. -60 dB on the test input means off.
+  const [audioResponse, setAudioResponse] = useState(0.46)
+  const [testInDb, setTestInDb] = useState(-60)
+  const [thresholdDb, setThresholdDb] = useState(-12)
   const [heroScale, setHeroScale] = useState(155)//89
   // Outer ring. Starts at the dark-field defaults from DEFAULT_RIM.
   const [rimInner, setRimInner] = useState(0.55)//0.72
   const [rimFade, setRimFade] = useState(0.99)//0.88
+  // Per-state look. "" palette means "use the base palette above".
+  const [stateStyles, setStateStyles] = useState<Record<OrbState, { level: number; palette: string }>>({
+    idle: { level: DEFAULT_STATE_STYLES.idle.level, palette: "iris" },
+    listening: { level: DEFAULT_STATE_STYLES.listening.level, palette: "moss" },
+    thinking: { level: DEFAULT_STATE_STYLES.thinking.level, palette: "ember" },
+    speaking: { level: DEFAULT_STATE_STYLES.speaking.level, palette: "discharge" },
+  })
+  const setStyle = (s: OrbState, patch: Partial<{ level: number; palette: string }>) =>
+    setStateStyles((prev) => ({ ...prev, [s]: { ...prev[s], ...patch } }))
+  const statesProp: OrbStateStyles = Object.fromEntries(
+    STATES.map((s) => [s, { level: stateStyles[s].level, palette: stateStyles[s].palette || undefined }]),
+  )
   const [rimStrength, setRimStrength] = useState(0.10)//0.64
+  const [rimInputCap, setRimInputCap] = useState(0.11)
 
   const { speak, speaking, analyserRef } = useSynthesisedSpeech()
 
@@ -135,11 +152,10 @@ function App() {
 
   const inputLevel = useOrbAudio(micStream)
 
+  // "speak a reply" deliberately leaves the state alone so it can be tested in any state.
   useEffect(() => {
-    if (speaking) setState("speaking")
-    else if (micStream) setState("listening")
-    else setState((s) => (s === "speaking" ? "idle" : s))
-  }, [speaking, micStream])
+    if (micStream) setState("listening")
+  }, [micStream])
 
   const toggleMic = async () => {
     if (micStream) {
@@ -161,10 +177,13 @@ function App() {
           palette={palette}
           state={state}
           outputLevelRef={() => Math.max(heldOut, outputLevel.current)}
-          inputLevelRef={() => Math.max(heldIn, inputLevel.current)}
+          inputLevelRef={() => Math.max(heldIn, testInDb > -60 ? dbToLevel(testInDb) : 0, inputLevel.current)}
+          audioResponse={audioResponse}
+          loudness={{ threshold: dbToLevel(thresholdDb) }}
           className="orb-hero"
           style={{ width: heroScale, height: heroScale }}
-          rim={{ inner: rimInner, fade: rimFade, strength: rimStrength }}
+          rim={{ inner: rimInner, fade: rimFade, strength: rimStrength, inputCap: rimInputCap }}
+          states={statesProp}
         />
         <p className="readout" data-testid="readout">
           {state} 
@@ -197,6 +216,37 @@ function App() {
           ))}
         </fieldset>
 
+        <fieldset className="states">
+          <legend>Per state</legend>
+          {STATES.map((s) => (
+            <label key={s} aria-current={state === s}>
+              <span>{s}</span>
+              <select
+                value={stateStyles[s].palette}
+                data-testid={`state-palette-${s}`}
+                onChange={(e) => setStyle(s, { palette: e.target.value })}
+              >
+                <option value="">base</option>
+                {Object.keys(orbPalettes).map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={stateStyles[s].level}
+                data-testid={`state-level-${s}`}
+                onChange={(e) => setStyle(s, { level: Number(e.target.value) })}
+              />
+              <span>{stateStyles[s].level.toFixed(2)}</span>
+            </label>
+          ))}
+        </fieldset>
+
         <fieldset>
           <legend>Audio</legend>
           <button onClick={speak} disabled={speaking}>
@@ -205,6 +255,44 @@ function App() {
           <button onClick={toggleMic} aria-pressed={!!micStream}>
             {micStream ? "stop mic" : "use my mic"}
           </button>
+          <div className="audio-sliders">
+            <label>
+              <span>audio response ×{audioResponse.toFixed(2)}</span>
+              <input
+                type="range"
+                min={0}
+                max={3}
+                step={0.01}
+                value={audioResponse}
+                data-testid="audio-response"
+                onChange={(e) => setAudioResponse(Number(e.target.value))}
+              />
+            </label>
+            <label>
+              <span>test input {testInDb <= -60 ? "off" : `${testInDb} dB`}</span>
+              <input
+                type="range"
+                min={-60}
+                max={0}
+                step={1}
+                value={testInDb}
+                data-testid="test-in-db"
+                onChange={(e) => setTestInDb(Number(e.target.value))}
+              />
+            </label>
+            <label>
+              <span>loudness threshold {thresholdDb} dB</span>
+              <input
+                type="range"
+                min={-60}
+                max={0}
+                step={1}
+                value={thresholdDb}
+                data-testid="threshold-db"
+                onChange={(e) => setThresholdDb(Number(e.target.value))}
+              />
+            </label>
+          </div>
         </fieldset>
 
         <fieldset className="holds">
@@ -258,6 +346,7 @@ function App() {
               ["inner", rimInner, setRimInner, 0, 1],
               ["fade", rimFade, setRimFade, 0, 1],
               ["strength", rimStrength, setRimStrength, 0, 2],
+              ["input cap", rimInputCap, setRimInputCap, 0, 1],
             ] as const
           ).map(([name, value, set, min, max]) => (
             <label key={name}>
@@ -270,7 +359,7 @@ function App() {
                 max={max}
                 step={0.01}
                 value={value}
-                data-testid={`rim-${name}`}
+                data-testid={`rim-${name.replace(" ", "-")}`}
                 onChange={(e) => set(Number(e.target.value))}
               />
             </label>

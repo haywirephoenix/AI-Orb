@@ -156,3 +156,36 @@ figcaption {
   padding: 0.5rem 0.95rem;
 }
 
+.states { flex-direction: column; align-items: stretch; }
+.states label {
+  display: grid;
+  grid-template-columns: 5.5rem 7rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.6rem;
+  font: 0.64rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.states label[aria-current="true"] span:first-child { color: var(--accent); }
+.states select {
+  font: inherit;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  padding: 0.25rem;
+}
+.states input[type="range"] { accent-color: var(--accent); min-width: 120px; }
+
+.audio-sliders { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; margin-top: 0.4rem; }
+.audio-sliders label { display: flex; flex-direction: column; gap: 0.3rem; }
+.audio-sliders span {
+  font: 0.64rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.audio-sliders input[type="range"] { accent-color: var(--accent); width: 100%; }
+
