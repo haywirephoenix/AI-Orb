@@ -110,6 +110,7 @@ function App() {
   const [thresholdDb, setThresholdDb] = useState(-12)
   // Background image behind the page, for judging how the orb sits on real content.
   const [showBg, setShowBg] = useState(true)
+  const [bodyOpacity, setBodyOpacity] = useState(0.92)
   useEffect(() => {
     document.body.classList.toggle("bg-image", showBg)
   }, [showBg])
@@ -184,6 +185,7 @@ function App() {
           outputLevelRef={() => Math.max(heldOut, outputLevel.current)}
           inputLevelRef={() => Math.max(heldIn, testInDb > -60 ? dbToLevel(testInDb) : 0, inputLevel.current)}
           audioResponse={audioResponse}
+          bodyOpacity={bodyOpacity}
           loudness={{ threshold: dbToLevel(thresholdDb) }}
           className="orb-hero"
           style={{ width: heroScale, height: heroScale }}
@@ -215,6 +217,18 @@ function App() {
           <button onClick={() => setShowBg(true)} aria-pressed={showBg}>
             on
           </button>
+          <label className="inline-slider">
+            <span>body opacity {bodyOpacity.toFixed(2)}</span>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={bodyOpacity}
+              data-testid="body-opacity"
+              onChange={(e) => setBodyOpacity(Number(e.target.value))}
+            />
+          </label>
         </fieldset>
 
         <fieldset>

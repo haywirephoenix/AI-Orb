@@ -105,4 +105,6 @@ export interface OrbRendererConfig {
   response: number
   /** Optional too-loud warning. */
   loudness?: OrbLoudness
+  /** 0-1 opacity of the body colour between the coloured bodies. */
+  bodyOpacity: number
 }

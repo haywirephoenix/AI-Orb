@@ -3,7 +3,7 @@ import type { OrbField, OrbRendererConfig, OrbRim } from "./types"
 
 const UNIFORMS = [
   "uTime", "uFlow", "uRing", "uState", "uDark", "uIn", "uOut",
-  "uGrain", "uSeed", "uDetail", "uC1", "uC2", "uC3", "uBody",
+  "uGrain", "uSeed", "uDetail", "uC1", "uC2", "uC3", "uBody", "uBodyAlpha",
   "uRimColor", "uRimInner", "uRimFade", "uRimStrength",
 ] as const
 
@@ -387,6 +387,7 @@ export class OrbRenderer {
     gl.uniform3f(this.loc.uC2, c2[0], c2[1], c2[2])
     gl.uniform3f(this.loc.uC3, c3[0], c3[1], c3[2])
     gl.uniform3f(this.loc.uBody, body[0], body[1], body[2])
+    gl.uniform1f(this.loc.uBodyAlpha, clamp01(this.config.bodyOpacity))
     gl.uniform3f(this.loc.uRimColor, rc[0], rc[1], rc[2])
     gl.uniform1f(this.loc.uRimInner, rim.inner)
     gl.uniform1f(this.loc.uRimFade, rim.fade)

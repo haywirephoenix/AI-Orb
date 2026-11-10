@@ -35,6 +35,7 @@ uniform vec3  uC1;
 uniform vec3  uC2;
 uniform vec3  uC3;
 uniform vec3  uBody;
+uniform float uBodyAlpha;   // 0 clear glass, 1 solid body colour between the bodies
 
 // Outer ring: a radial band that rises from uRimInner and fades out from
 // uRimFade to the edge of the glass (radius 1).
@@ -81,22 +82,30 @@ void main() {
   }
 
   vec3 inner = acc / max(field, 0.0001);
-  float body = smoothstep(0.80, 2.10, field);
-  vec3 col = mix(uBody, inner, body * 0.96);
+  float body = smoothstep(0.80, 2.10, field) * 0.96;
+
+  // Premultiplied: the coloured bodies sit over a ground of body colour whose
+  // opacity is uBodyAlpha. At 1 this is the old opaque mix(uBody, inner, body);
+  // lower lets the page show through between the bodies.
+  float cover = body + (1.0 - body) * uBodyAlpha;
+  vec3 base = inner * body + uBody * (1.0 - body) * uBodyAlpha;
+
+  // Everything below is light added on top of the glass, not paint.
+  vec3 glow = vec3(0.0);
 
   // ---- Shell: outer ring, edge sheen, one specular peak ---------------------
   float rim = smoothstep(uRimInner, 0.99, r) * smoothstep(1.0, uRimFade, r);
-  col += uRimColor * rim * uRimStrength;
-  col += vec3(1.0) * pow(1.0 - bulge, 8.0) * 0.14;
+  glow += uRimColor * rim * uRimStrength;
+  glow += vec3(1.0) * pow(1.0 - bulge, 8.0) * 0.14;
 
   vec3 L = normalize(vec3(-0.40, 0.60, 0.69));
-  col += vec3(1.0) * pow(max(dot(normalize(n), L), 0.0), 46.0) * 0.45;
+  glow += vec3(1.0) * pow(max(dot(normalize(n), L), 0.0), 46.0) * 0.45;
 
   // ---- Thinking: an orbiting sweep, distinct in form from either voice (P8) --
   if (uState == 2) {
     float ang = atan(p.y, p.x);
     float sweep = 0.5 + 0.5 * cos(ang - fl * 1.5);
-    col += mix(uC2, uC3, 0.5) * pow(sweep, 7.0) * 0.40 * smoothstep(0.05, 0.85, r);
+    glow += mix(uC2, uC3, 0.5) * pow(sweep, 7.0) * 0.40 * smoothstep(0.05, 0.85, r);
   }
 
   // ---- Input lives on the boundary, never in the body (P10) -----------------
@@ -104,16 +113,20 @@ void main() {
     float pd = fract(r * 1.35 - uRing);
     float pulse = smoothstep(0.0, 0.30, pd) - smoothstep(0.30, 0.62, pd);
     vec3 pc = mix(uC3, vec3(0.42, 0.92, 0.99), 0.35 + 0.3 * uDark);
-    col += pc * pulse * uIn * 1.15 * smoothstep(0.10, 0.95, r);
+    glow += pc * pulse * uIn * 1.15 * smoothstep(0.10, 0.95, r);
     float rim2 = smoothstep(0.74, 0.995, r) * smoothstep(1.0, 0.90, r);
-    col += pc * rim2 * uIn * 1.5;
+    glow += pc * rim2 * uIn * 1.5;
   }
 
   // ---- Grain: defeats banding and gives the eye something to resolve (P6) ---
   float g = hash21(vUv * 780.0 + fract(uTime) * 91.0);
-  col *= 1.0 - uGrain * uDetail * (g - 0.5) * 2.0;
+  vec3 col = (base + glow) * (1.0 - uGrain * uDetail * (g - 0.5) * 2.0);
+  col = clamp(col, 0.0, 1.0);
 
-  gl_FragColor = vec4(clamp(col, 0.0, 1.0) * alpha, alpha);
+  // Alpha must cover the brightest channel to stay valid premultiplied colour,
+  // so glow on clear glass reads as light rather than being dropped.
+  float a = max(cover, max(col.r, max(col.g, col.b)));
+  gl_FragColor = vec4(col * alpha, a * alpha);
 }
 `
 

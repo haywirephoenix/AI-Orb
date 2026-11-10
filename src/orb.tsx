@@ -21,6 +21,11 @@ export interface OrbProps {
   colors?: [string, string, string]
   /** The non-chromatic mass behind the colour. Defaults to the palette's. */
   bodyColor?: string
+  /**
+   * 0-1 opacity of that body colour. 1 is solid; lower lets the page show
+   * through between the coloured bodies. The ring and highlights stay. Default 1.
+   */
+  bodyOpacity?: number
   /** Force a light model. Defaults to following the page. */
   field?: OrbField
 
@@ -140,6 +145,7 @@ export function Orb({
   palette,
   colors,
   bodyColor,
+  bodyOpacity = 1,
   field: fieldProp,
   state = "idle",
   outputLevelRef,
@@ -204,6 +210,7 @@ export function Orb({
         level,
         response,
         loudness,
+        bodyOpacity,
       },
       {
         getInputLevel: () => levels.current.input(),
@@ -252,9 +259,10 @@ export function Orb({
       level,
       response,
       loudness,
+      bodyOpacity,
     })
     if (reduced) renderer.renderStill()
-  }, [field, resolved, state, grain, seed, speed, reduced, rim, level, response, loudness])
+  }, [field, resolved, state, grain, seed, speed, reduced, rim, level, response, loudness, bodyOpacity])
 
   // No WebGL: a static approximation rather than an empty hole.
   if (fallback) {

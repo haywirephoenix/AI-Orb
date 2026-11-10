@@ -205,3 +205,13 @@ figcaption {
 }
 .audio-sliders input[type="range"] { accent-color: var(--accent); width: 100%; }
 
+.inline-slider { display: flex; flex-direction: column; gap: 0.3rem; width: 100%; margin-top: 0.4rem; }
+.inline-slider span {
+  font: 0.64rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.inline-slider input[type="range"] { accent-color: var(--accent); width: 100%; }
+
