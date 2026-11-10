@@ -23,25 +23,26 @@
 
 body {
   margin: 0;
-  /* background: var(--bg); */
+  background: var(--bg);
   color: var(--ink);
   font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, sans-serif;
-
-  background: url(bg.jpg) no-repeat center center fixed;
-  -webkit-background-size: cover;
-  -moz-background-size: cover;
-  -o-background-size: cover;
-  background-size: cover;
-
 }
 
+/* Background toggle: an image behind everything, to judge the orb against real content. */
+body.bg-image {
+  background: var(--bg) url(bg.jpg) no-repeat center center fixed;
+  background-size: cover;
+}
+
+/* Two columns: the orb stays in view on the left while the controls scroll on the right. */
 main {
-  max-width: 960px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 3rem 1.5rem 6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 1.5rem;
+  align-items: start;
 }
 
 h1 { font-size: 2rem; letter-spacing: -0.03em; margin: 0 0 0.25rem; }
@@ -49,11 +50,15 @@ h2 { font-size: 1.1rem; letter-spacing: -0.02em; margin: 0 0 1rem; }
 header p { color: var(--muted); margin: 0; }
 
 .stage {
+  position: sticky;
+  top: 1.5rem;
+  min-height: calc(100vh - 3rem);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
-  padding: 2.5rem;
+  padding: 1rem;
   /* background: var(--surface); */
   /* border: 1px solid var(--rule); */
 }
@@ -69,7 +74,18 @@ header p { color: var(--muted); margin: 0; }
   margin: 0;
 }
 
-.controls { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+.controls { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.controls > fieldset { width: 100%; }
+
+/* Side-by-side group of fieldsets inside the controls column. */
+.row { display: flex; gap: 5px; align-items: stretch; }
+.row > fieldset { flex: 1 1 0; min-width: 0; }
+
+/* Narrow screens: stack, orb on top. */
+@media (max-width: 860px) {
+  main { grid-template-columns: minmax(0, 1fr); padding: 1rem; }
+  .stage { position: static; min-height: 0; padding: 1.5rem 0; }
+}
 
 fieldset {
   border: 1px solid var(--rule);

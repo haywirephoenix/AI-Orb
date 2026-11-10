@@ -108,6 +108,11 @@ function App() {
   const [audioResponse, setAudioResponse] = useState(0.46)
   const [testInDb, setTestInDb] = useState(-60)
   const [thresholdDb, setThresholdDb] = useState(-12)
+  // Background image behind the page, for judging how the orb sits on real content.
+  const [showBg, setShowBg] = useState(true)
+  useEffect(() => {
+    document.body.classList.toggle("bg-image", showBg)
+  }, [showBg])
   const [heroScale, setHeroScale] = useState(155)//89
   // Outer ring. Starts at the dark-field defaults from DEFAULT_RIM.
   const [rimInner, setRimInner] = useState(0.55)//0.72
@@ -201,10 +206,15 @@ function App() {
           ))}
         </fieldset> */}
 
+        <div className="row">
         <fieldset>
           <legend>Background</legend>
-          <button>Off</button>
-          <button>On</button>
+          <button onClick={() => setShowBg(false)} aria-pressed={!showBg}>
+            off
+          </button>
+          <button onClick={() => setShowBg(true)} aria-pressed={showBg}>
+            on
+          </button>
         </fieldset>
 
         <fieldset>
@@ -215,6 +225,7 @@ function App() {
             </button>
           ))}
         </fieldset>
+        </div>
 
         <fieldset className="states">
           <legend>Per state</legend>
@@ -247,6 +258,7 @@ function App() {
           ))}
         </fieldset>
 
+        <div className="row">
         <fieldset>
           <legend>Audio</legend>
           <button onClick={speak} disabled={speaking}>
@@ -322,7 +334,9 @@ function App() {
             />
           </label>
         </fieldset>
+        </div>
 
+        <div className="row">
         <fieldset className="holds">
           <legend>Scale</legend>
           <label>
@@ -330,7 +344,7 @@ function App() {
             <input
               type="range"
               min={24}
-              max={240}
+              max={640}
               step={1}
               value={heroScale}
               data-testid="heroScale"
@@ -365,6 +379,7 @@ function App() {
             </label>
           ))}
         </fieldset>
+        </div>
 
       </section>
 
