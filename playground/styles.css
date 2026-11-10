@@ -30,7 +30,7 @@ body {
 
 /* Background toggle: an image behind everything, to judge the orb against real content. */
 body.bg-image {
-  background: var(--bg) url(bg.jpg) no-repeat center center fixed;
+  background: var(--bg) url(https://images.unsplash.com/photo-1677638252372-bc53025387c1?q=80&w=2128&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D) no-repeat center center fixed;
   background-size: cover;
 }
 
